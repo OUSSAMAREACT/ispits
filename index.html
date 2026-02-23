@@ -714,11 +714,11 @@
                                     </path>
                                 </svg>
                             </div>
-                            <input type="tel" id="whatsappPhone" placeholder="6XXXXXXXX" maxlength="9"
-                                inputmode="numeric" dir="ltr" style="text-align: right;">
-                            <div class="phone-prefix" dir="ltr">+212 🇲🇦</div>
+                            <input type="tel" id="whatsappPhone" placeholder="مثال: 06 66 21 05 06" inputmode="numeric"
+                                dir="ltr" style="text-align: right;">
+
                         </div>
-                        <div class="error-text" id="phoneError">المرجو إدخال رقم واتساب صحيح (9 أرقام)</div>
+                        <div class="error-text" id="phoneError">المرجو إدخال رقم واتساب صحيح (10 أرقام على الأقل)</div>
                     </div>
 
                     <div class="input-group">
@@ -788,8 +788,8 @@
 
             // Only numbers for phone input
             phoneInput.addEventListener('input', function (e) {
-                this.value = this.value.replace(/\D/g, '');
-                if (this.value.length > 0) {
+                this.value = this.value.replace(/[^\d\s]/g, '');
+                if (this.value.replace(/\s/g, '').length >= 10) {
                     phoneWrapper.classList.remove('error');
                 }
             });
@@ -816,7 +816,8 @@
                 }
 
                 // Validate Phone (exactly 9 digits usually following 6 or 7)
-                if (phoneVal.length < 9) {
+                const purePhone = phoneVal.replace(/\s/g, '');
+                if (purePhone.length < 10) {
                     phoneWrapper.classList.add('error');
                     isValid = false;
                 } else {
@@ -831,16 +832,37 @@
                     style.innerHTML = '@keyframes spin { 100% { transform: rotate(360deg); } }';
                     document.head.appendChild(style);
 
-                    // Simulate API call
-                    setTimeout(() => {
-                        form.style.display = 'none';
-                        successState.style.display = 'block';
-                        console.log('Submitted:', {
-                            name: nameVal,
-                            phone: '+212' + phoneVal,
-                            region: document.getElementById('region').value
+                    // Telegram Integration
+                    const BOT_TOKEN = '8662559866:AAHKFwqgjHNoagpFuw73fTDdBeYhH6-HHw8';
+                    const CHAT_ID = '8479822317'; // Chat ID configured
+
+                    const regionVal = document.getElementById('region').value;
+                    const textMessage = `📌 طلب انضمام جديد (ISPITS Maroc):\n👤 الاسم: ${nameVal}\n📱 واتساب: ${phoneVal}\n📍 الجهة: ${regionVal || 'لم يتم التحديد'}`;
+
+                    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: CHAT_ID,
+                            text: textMessage
+                        })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.ok) {
+                                form.style.display = 'none';
+                                successState.style.display = 'block';
+                            } else {
+                                console.error('Telegram Error:', data);
+                                alert(data.description === 'Bad Request: chat not found' ? 'معرف المحادثة (CHAT_ID) غير صحيح أو لم تقم بمراسلة البوت بعد.' : 'حدث خطأ أثناء إرسال الطلب. المرجو المحاولة لاحقاً.');
+                                submitBtn.innerHTML = '<span>إرسال الطلب</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('حدث خطأ في الاتصال.');
+                            submitBtn.innerHTML = '<span>إرسال الطلب</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
                         });
-                    }, 1500);
                 }
             });
         });
